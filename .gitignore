@@ -34,3 +34,7 @@ build
 
 # Keep Gradle Wrapper
 !gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
