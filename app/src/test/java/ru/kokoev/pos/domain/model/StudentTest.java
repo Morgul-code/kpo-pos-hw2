@@ -1,6 +1,6 @@
-package test.java.ru.kokoev.pos.domain.model;
+package ru.kokoev.pos.domain.model;
 
-import main.java.ru.kokoev.pos.domain.model.Student;
+import ru.kokoev.pos.domain.model.Student;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -16,10 +16,15 @@ class StudentTest {
         Student student = new Student(id, "Иван Иванов");
 
         System.out.println(student.getFullName());
+        assertEquals("Иван Иванов", student.getFullName());
+        assertEquals(id, student.getId());
     }
 
     @Test
     void shouldRejectBlankFullName() {
-        new Student(UUID.randomUUID(), "   ");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Student(UUID.randomUUID(), "   ")
+        );
     }
 }

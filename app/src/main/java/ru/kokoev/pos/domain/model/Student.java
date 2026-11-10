@@ -1,4 +1,4 @@
-package main.java.ru.kokoev.pos.domain.model;
+package ru.kokoev.pos.domain.model;
 
 import java.util.UUID;
 
@@ -13,7 +13,7 @@ public class Student {
             );
         }
 
-        if (fullName == null || fullName.trim().isEmpty()) {
+        if (fullName == null || fullName.isBlank()) {
             throw new IllegalArgumentException(
                     "Error: Name cannot be empty or consist only of spaces."
             );
