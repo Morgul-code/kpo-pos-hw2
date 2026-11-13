@@ -1,34 +1,37 @@
 package ru.kokoev.pos.domain.model;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 public class Rubric {
     private final UUID id;
-    private final List<Criterion> criteria;
+    private final List<Criterion> criteria = new ArrayList<>();
 
-    public Rubric(UUID id, List<Criterion> criteria) {
+    public Rubric(UUID id) {
         this.id = Objects.requireNonNull(id, "ID не задано");
-        this.criteria = List.copyOf(Objects.requireNonNull(criteria, "Criteria cannot be null"));
     }
 
     public void addCriterion(Criterion criterion) {
-        BigDecimal tempForWeight = BigDecimal.ZERO;
-        Objects.requireNonNull(criterion, "Критерий не задан");
+        if (criterion == null){
+            throw new IllegalArgumentException(
+                    "ID не задан"
+            );
+        }
 
         for (Criterion searchableCriterion : criteria) {
-            if (searchableCriterion.getId() == criterion.getId()) {
+            if (searchableCriterion.getId().equals(criterion.getId())) {
                 throw new IllegalArgumentException(
-                        "Данная критерия уже присутствует в списке!"
+                        "Критерий с таким идентификатором уже существует"
                 );
             }
         }
 
-        tempForWeight = tempForWeight.add(getTotalWeight());
-        tempForWeight = tempForWeight.add(criterion.getWeight());
-        if (tempForWeight.compareTo(BigDecimal.ONE) > 0) {
+        BigDecimal newTotalWeight =
+                getTotalWeight().add(criterion.getWeight());
+        if (newTotalWeight.compareTo(BigDecimal.ONE) > 0) {
             throw new IllegalArgumentException(
                     "Сумма весов не должна превышать единицу!"
             );
