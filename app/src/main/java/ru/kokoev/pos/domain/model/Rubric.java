@@ -15,9 +15,9 @@ public class Rubric {
     }
 
     public void addCriterion(Criterion criterion) {
-        if (criterion == null){
+        if (criterion == null) {
             throw new IllegalArgumentException(
-                    "ID не задан"
+                    "Критерий не может быть null"
             );
         }
 
