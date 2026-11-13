@@ -1,7 +1,6 @@
 package ru.kokoev.pos.domain.model;
 
 import org.junit.jupiter.api.Test;
-import ru.kokoev.pos.domain.model.Rubric;
 
 import java.math.BigDecimal;
 import java.util.UUID;
