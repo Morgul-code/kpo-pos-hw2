@@ -55,8 +55,8 @@ public class CriterionTest {
         );
 
         assertEquals(
-                "Экзамен",
-                criterion.getName()
+                5,
+                criterion.getMaxScore()
         );
     }
 
@@ -89,7 +89,7 @@ public class CriterionTest {
     }
 
     @Test
-    void shouldRejectWeightBiggerThanZero() {
+    void shouldRejectWeightGreaterThanOne() {
         BigDecimal weight = new BigDecimal("1.10");
 
         assertThrows(
@@ -112,7 +112,7 @@ public class CriterionTest {
                 () -> new Criterion(
                         UUID.randomUUID(),
                         "",
-                        0,
+                        10,
                         weight
                 )
         );
