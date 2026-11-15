@@ -1,54 +1,30 @@
 package ru.kokoev.pos;
 
+import ru.kokoev.pos.application.facade.PosFacade;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
-import ru.kokoev.pos.domain.model.Criterion;
-import ru.kokoev.pos.domain.model.Evaluation;
-import ru.kokoev.pos.domain.model.Rubric;
-import ru.kokoev.pos.domain.model.Student;
 import ru.kokoev.pos.domain.repository.EvaluationRepository;
+import ru.kokoev.pos.domain.repository.RubricRepository;
+import ru.kokoev.pos.domain.repository.StudentRepository;
 import ru.kokoev.pos.domain.service.FinalScoreService;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryEvaluationRepository;
+import ru.kokoev.pos.infrastructure.persistence.InMemoryRubricRepository;
+import ru.kokoev.pos.infrastructure.persistence.InMemoryStudentRepository;
+import ru.kokoev.pos.presentation.console.ConsoleMenu;
 
-import java.math.BigDecimal;
-import java.util.UUID;
+import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) {
-        Student student = new Student(UUID.randomUUID(), "Иван Иванов");
-        Rubric rubric = new Rubric(UUID.randomUUID());
-        Criterion exam = new Criterion(
-                UUID.randomUUID(), "Экзамен", 10, new BigDecimal("0.60")
-        );
-        Criterion project = new Criterion(
-                UUID.randomUUID(), "Проект", 20, new BigDecimal("0.40")
-        );
-        rubric.addCriterion(exam);
-        rubric.addCriterion(project);
-
+        StudentRepository studentRepository = new InMemoryStudentRepository();
+        RubricRepository rubricRepository = new InMemoryRubricRepository();
         EvaluationRepository repository = new InMemoryEvaluationRepository();
         FinalScoreService finalScoreService = new FinalScoreService();
         EvaluationApplicationService service = new EvaluationApplicationService(
                 repository, finalScoreService
         );
 
-        Evaluation examEvaluation = service.assignScore(student, rubric, exam.getId(), 8);
-        Evaluation projectEvaluation = service.assignScore(student, rubric, project.getId(), 18);
-        BigDecimal result = service.calculateFinal(student, rubric);
-        BigDecimal percentage = result.multiply(BigDecimal.valueOf(100)).stripTrailingZeros();
-
-        System.out.println("Студент: " + student.getFullName());
-        System.out.printf(
-                "%s: %d/%d%n",
-                exam.getName(),
-                examEvaluation.getScore().value(),
-                exam.getMaxScore()
-        );
-        System.out.printf(
-                "%s: %d/%d%n",
-                project.getName(),
-                projectEvaluation.getScore().value(),
-                project.getMaxScore()
-        );
-        System.out.println("Итоговый результат: " + percentage.toPlainString() + "%");
+        PosFacade facade = new PosFacade(studentRepository, rubricRepository, service);
+        ConsoleMenu menu = new ConsoleMenu(facade, new Scanner(System.in), System.out);
+        menu.run();
     }
 }
