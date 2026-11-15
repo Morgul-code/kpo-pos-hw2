@@ -38,3 +38,6 @@ build
 # IntelliJ IDEA
 .idea/
 *.iml
+
+# macOS metadata
+.DS_Store
