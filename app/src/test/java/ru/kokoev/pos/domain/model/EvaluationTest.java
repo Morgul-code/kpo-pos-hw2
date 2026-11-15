@@ -63,6 +63,17 @@ public class EvaluationTest {
     }
 
     @Test
+    void shouldRejectNullScore() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Evaluation(
+                        UUID.randomUUID(), this.student, this.rubric,
+                        this.criterion.getId(), null
+                )
+        );
+    }
+
+    @Test
     void shouldAcceptScoreEqualToMaximum() {
         Evaluation evaluation = new Evaluation(
                 UUID.randomUUID(), this.student, this.rubric,

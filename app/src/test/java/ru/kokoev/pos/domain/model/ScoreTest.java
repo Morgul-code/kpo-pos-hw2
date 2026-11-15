@@ -6,14 +6,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ScoreTest {
     @Test
-    void ShouldAcceptValidScore(){
+    void shouldAcceptValidScore(){
         assertDoesNotThrow(
                 () -> new Score(5)
         );
     }
 
     @Test
-    void ShouldRejectInvalidScore(){
+    void shouldRejectInvalidScore(){
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new Score(-5)
@@ -21,10 +21,17 @@ public class ScoreTest {
     }
 
     @Test
-    void ShouldAcceptEqualScores(){
+    void shouldAcceptEqualScores(){
         Score first = new Score(8);
         Score second = new Score(8);
 
         assertEquals(first, second);
+    }
+
+    @Test
+    void shouldAcceptZeroScore() {
+        Score score = new Score(0);
+
+        assertEquals(0, score.value());
     }
 }

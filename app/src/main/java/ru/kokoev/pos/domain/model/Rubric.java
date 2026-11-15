@@ -41,6 +41,12 @@ public class Rubric {
     }
 
     public Criterion getCriterionById(UUID criterionId) {
+        if (criterionId == null) {
+            throw new IllegalArgumentException(
+                    "Идентификатор критерия не может быть null"
+            );
+        }
+
         for (Criterion criterion : criteria) {
             if (criterion.getId().equals(criterionId)) {
                 return criterion;

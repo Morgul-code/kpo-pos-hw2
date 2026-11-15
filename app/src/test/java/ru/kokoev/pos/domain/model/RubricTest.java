@@ -49,6 +49,18 @@ public class RubricTest {
     }
 
     @Test
+    void shouldRejectNullCriterionId() {
+        Rubric rubric = new Rubric(UUID.randomUUID());
+        rubric.addCriterion(this.firstCriterion);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> rubric.getCriterionById(null)
+        );
+        assertEquals("Идентификатор критерия не может быть null", exception.getMessage());
+    }
+
+    @Test
     void shouldRejectTotalWeightGreaterThanOne() {
         Rubric rubric = new Rubric(UUID.randomUUID());
         rubric.addCriterion(this.firstCriterion);
