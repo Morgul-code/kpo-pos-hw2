@@ -122,6 +122,62 @@ public class PosFacadeTest {
     }
 
     @Test
+    void shouldRejectAddingCriterionAfterEvaluation() {
+        this.facade.createStudent("Пётр Петров");
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        Criterion exam = this.facade.addCriterion(
+                rubric.getId(), "Экзамен", 10, new BigDecimal("0.60")
+        );
+        Evaluation evaluation = this.facade.assignScore(
+                student.getId(), rubric.getId(), exam.getId(), 8
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> this.facade.addCriterion(
+                rubric.getId(), "Проект", 20, new BigDecimal("0.40")
+        ));
+
+        assertEquals(List.of(exam), this.facade.findCriteria(rubric.getId()));
+        assertEquals(0, new BigDecimal("0.60").compareTo(rubric.getTotalWeight()));
+        assertEquals(List.of(evaluation), this.facade.findEvaluations(student.getId(), rubric.getId()));
+    }
+
+    @Test
+    void shouldAllowAddingCriterionToOtherRubricAfterEvaluation() {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric gradedRubric = this.facade.createRubric();
+        Criterion exam = this.facade.addCriterion(
+                gradedRubric.getId(), "Экзамен", 10, BigDecimal.ONE
+        );
+        this.facade.assignScore(student.getId(), gradedRubric.getId(), exam.getId(), 8);
+        Rubric otherRubric = this.facade.createRubric();
+
+        Criterion project = this.facade.addCriterion(
+                otherRubric.getId(), "Проект", 20, BigDecimal.ONE
+        );
+
+        assertEquals(List.of(project), this.facade.findCriteria(otherRubric.getId()));
+    }
+
+    @Test
+    void shouldAllowAddingCriterionAfterRejectedScore() {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        Criterion exam = this.facade.addCriterion(
+                rubric.getId(), "Экзамен", 10, new BigDecimal("0.60")
+        );
+        assertThrows(IllegalArgumentException.class, () -> this.facade.assignScore(
+                student.getId(), rubric.getId(), exam.getId(), 12
+        ));
+
+        Criterion project = this.facade.addCriterion(
+                rubric.getId(), "Проект", 20, new BigDecimal("0.40")
+        );
+
+        assertEquals(List.of(exam, project), this.facade.findCriteria(rubric.getId()));
+    }
+
+    @Test
     void shouldRejectUnknownStudent() {
         Rubric rubric = this.facade.createRubric();
         Criterion criterion = this.facade.addCriterion(rubric.getId(), "Экзамен", 10, BigDecimal.ONE);

@@ -119,6 +119,85 @@ public class ConsoleMenuTest {
     }
 
     @Test
+    void shouldShowStudentEvaluationsForSelectedRubric() {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Student otherStudent = this.facade.createStudent("Пётр Петров");
+        Rubric rubric = this.facade.createRubric();
+        Criterion exam = this.facade.addCriterion(
+                rubric.getId(), "Экзамен", 10, new BigDecimal("0.60")
+        );
+        Criterion project = this.facade.addCriterion(
+                rubric.getId(), "Проект", 20, new BigDecimal("0.40")
+        );
+        this.facade.assignScore(student.getId(), rubric.getId(), exam.getId(), 8);
+        this.facade.assignScore(student.getId(), rubric.getId(), project.getId(), 18);
+        this.facade.assignScore(otherStudent.getId(), rubric.getId(), exam.getId(), 9);
+        Rubric otherRubric = this.facade.createRubric();
+        Criterion otherCriterion = this.facade.addCriterion(
+                otherRubric.getId(), "Другое задание", 10, BigDecimal.ONE
+        );
+        this.facade.assignScore(student.getId(), otherRubric.getId(), otherCriterion.getId(), 7);
+
+        String output = runMenu("9\n1\n1\n0\n");
+
+        assertTrue(output.contains("9. Показать оценки студента"));
+        assertTrue(output.contains("Студент: Иван Иванов"));
+        assertTrue(output.contains("Экзамен: 8/10"));
+        assertTrue(output.contains("Проект: 18/20"));
+        assertFalse(output.contains("Экзамен: 9/10"));
+        assertFalse(output.contains("Другое задание: 7/10"));
+        assertTrue(output.contains("До свидания!"));
+    }
+
+    @Test
+    void shouldReportNoEvaluationsForStudent() {
+        this.facade.createStudent("Иван Иванов");
+        this.facade.createRubric();
+
+        String output = runMenu("9\n1\n1\n0\n");
+
+        assertTrue(output.contains("Оценок пока нет."));
+        assertTrue(output.contains("До свидания!"));
+        assertFalse(output.contains("Ошибка:"));
+    }
+
+    @Test
+    void shouldRejectScoreAboveMaximumAndContinueWithValidScore() {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        this.facade.addCriterion(rubric.getId(), "Экзамен", 10, BigDecimal.ONE);
+
+        String output = runMenu("""
+                7
+                1
+                1
+                1
+                12
+                9
+                1
+                1
+                7
+                1
+                1
+                1
+                8
+                9
+                1
+                1
+                0
+                """);
+
+        assertTrue(output.contains("Ошибка: Балл не должен превышать максимум критерия"));
+        assertTrue(output.contains("Оценок пока нет."));
+        assertTrue(output.contains("Оценка сохранена."));
+        assertTrue(output.contains("Экзамен: 8/10"));
+        assertTrue(output.contains("До свидания!"));
+        assertEquals(1, this.facade.findEvaluations(student.getId(), rubric.getId()).size());
+        assertEquals(8, this.facade.findEvaluations(student.getId(), rubric.getId())
+                .get(0).getScore().value());
+    }
+
+    @Test
     void shouldReportUnknownCommand() {
         String output = runMenu("unknown\n0\n");
 

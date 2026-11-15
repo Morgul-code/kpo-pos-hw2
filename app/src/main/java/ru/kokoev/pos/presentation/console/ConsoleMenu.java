@@ -2,6 +2,7 @@ package ru.kokoev.pos.presentation.console;
 
 import ru.kokoev.pos.application.facade.PosFacade;
 import ru.kokoev.pos.domain.model.Criterion;
+import ru.kokoev.pos.domain.model.Evaluation;
 import ru.kokoev.pos.domain.model.Rubric;
 import ru.kokoev.pos.domain.model.Student;
 
@@ -42,6 +43,7 @@ public class ConsoleMenu {
                     case "6" -> printCriteria(this.facade.findCriteria(selectRubric().getId()));
                     case "7" -> assignScore();
                     case "8" -> calculateFinal();
+                    case "9" -> showEvaluations();
                     case "0" -> {
                         this.output.println("До свидания!");
                         return;
@@ -69,6 +71,7 @@ public class ConsoleMenu {
                 6. Показать критерии
                 7. Выставить оценку
                 8. Рассчитать итог
+                9. Показать оценки студента
                 0. Выход
                 """);
     }
@@ -99,6 +102,27 @@ public class ConsoleMenu {
         int points = readInt("Балл: ");
         this.facade.assignScore(student.getId(), rubric.getId(), criterion.getId(), points);
         this.output.println("Оценка сохранена.");
+    }
+
+    private void showEvaluations() {
+        Student student = selectStudent();
+        Rubric rubric = selectRubric();
+        List<Evaluation> evaluations = this.facade.findEvaluations(student.getId(), rubric.getId());
+        this.output.println("Студент: " + student.getFullName());
+        if (evaluations.isEmpty()) {
+            this.output.println("Оценок пока нет.");
+            return;
+        }
+        for (Criterion criterion : this.facade.findCriteria(rubric.getId())) {
+            for (Evaluation evaluation : evaluations) {
+                if (criterion.getId().equals(evaluation.getCriterionId())) {
+                    this.output.printf(
+                            "%s: %d/%d%n",
+                            criterion.getName(), evaluation.getScore().value(), criterion.getMaxScore()
+                    );
+                }
+            }
+        }
     }
 
     private void calculateFinal() {

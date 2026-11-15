@@ -55,6 +55,13 @@ public class PosFacade {
 
     public Criterion addCriterion(UUID rubricId, String name, int maxScore, BigDecimal weight) {
         Rubric rubric = this.rubricRepository.getById(rubricId);
+        for (Student student : this.studentRepository.findAll()) {
+            if (!this.evaluationService.findEvaluations(student, rubric).isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Нельзя изменять рубрикатор после начала оценивания"
+                );
+            }
+        }
         Criterion criterion = new Criterion(UUID.randomUUID(), name, maxScore, weight);
         rubric.addCriterion(criterion);
         this.rubricRepository.save(rubric);
