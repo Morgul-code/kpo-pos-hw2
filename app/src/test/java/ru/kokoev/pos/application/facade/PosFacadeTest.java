@@ -129,16 +129,23 @@ public class PosFacadeTest {
         Criterion exam = this.facade.addCriterion(
                 rubric.getId(), "Экзамен", 10, new BigDecimal("0.60")
         );
+        Criterion project = this.facade.addCriterion(
+                rubric.getId(), "Проект", 20, new BigDecimal("0.40")
+        );
         Evaluation evaluation = this.facade.assignScore(
                 student.getId(), rubric.getId(), exam.getId(), 8
         );
 
-        assertThrows(IllegalArgumentException.class, () -> this.facade.addCriterion(
-                rubric.getId(), "Проект", 20, new BigDecimal("0.40")
-        ));
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> this.facade.addCriterion(
+                        rubric.getId(), "Дополнительное задание", 5, new BigDecimal("0.10")
+                )
+        );
 
-        assertEquals(List.of(exam), this.facade.findCriteria(rubric.getId()));
-        assertEquals(0, new BigDecimal("0.60").compareTo(rubric.getTotalWeight()));
+        assertEquals("Нельзя изменять рубрикатор после начала оценивания", exception.getMessage());
+        assertEquals(List.of(exam, project), this.facade.findCriteria(rubric.getId()));
+        assertEquals(0, BigDecimal.ONE.compareTo(rubric.getTotalWeight()));
         assertEquals(List.of(evaluation), this.facade.findEvaluations(student.getId(), rubric.getId()));
     }
 
@@ -160,21 +167,35 @@ public class PosFacadeTest {
     }
 
     @Test
-    void shouldAllowAddingCriterionAfterRejectedScore() {
+    void shouldAllowCompletingRubricAfterRejectedGrading() {
         Student student = this.facade.createStudent("Иван Иванов");
         Rubric rubric = this.facade.createRubric();
         Criterion exam = this.facade.addCriterion(
                 rubric.getId(), "Экзамен", 10, new BigDecimal("0.60")
         );
-        assertThrows(IllegalArgumentException.class, () -> this.facade.assignScore(
-                student.getId(), rubric.getId(), exam.getId(), 12
-        ));
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> this.facade.assignScore(student.getId(), rubric.getId(), exam.getId(), 8)
+        );
+        assertEquals(
+                "Нельзя выставлять оценки: сумма весов рубрикатора должна равняться 1",
+                exception.getMessage()
+        );
+        assertTrue(this.facade.findEvaluations(student.getId(), rubric.getId()).isEmpty());
 
         Criterion project = this.facade.addCriterion(
                 rubric.getId(), "Проект", 20, new BigDecimal("0.40")
         );
 
         assertEquals(List.of(exam, project), this.facade.findCriteria(rubric.getId()));
+        assertEquals(0, BigDecimal.ONE.compareTo(rubric.getTotalWeight()));
+        Evaluation evaluation = this.facade.assignScore(
+                student.getId(), rubric.getId(), exam.getId(), 8
+        );
+        assertEquals(List.of(evaluation), this.facade.findEvaluations(student.getId(), rubric.getId()));
+        assertEquals(0, new BigDecimal("0.48").compareTo(
+                this.facade.calculateFinal(student.getId(), rubric.getId())
+        ));
     }
 
     @Test

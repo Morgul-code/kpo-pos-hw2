@@ -69,6 +69,48 @@ public class ConsoleMenuTest {
     }
 
     @Test
+    void shouldCompleteRubricAfterRejectedGradingAndCalculateFinal() {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        this.facade.addCriterion(rubric.getId(), "Экзамен", 10, new BigDecimal("0.60"));
+
+        String output = runMenu("""
+                7
+                1
+                1
+                1
+                8
+                5
+                1
+                Проект
+                20
+                0.40
+                7
+                1
+                1
+                1
+                8
+                7
+                1
+                1
+                2
+                18
+                8
+                1
+                1
+                0
+                """);
+
+        assertTrue(output.contains(
+                "Ошибка: Нельзя выставлять оценки: сумма весов рубрикатора должна равняться 1"
+        ));
+        assertTrue(output.contains("Критерий добавлен: Проект"));
+        assertTrue(output.contains("Итоговый результат: 84%"));
+        assertTrue(output.contains("До свидания!"));
+        assertEquals(2, this.facade.findEvaluations(student.getId(), rubric.getId()).size());
+    }
+
+    @Test
     void shouldDisplaySavedData() {
         this.facade.createStudent("Иван Иванов");
         Rubric rubric = this.facade.createRubric();
