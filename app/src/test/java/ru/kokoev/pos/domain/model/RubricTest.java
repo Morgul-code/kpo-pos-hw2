@@ -27,6 +27,28 @@ public class RubricTest {
     }
 
     @Test
+    void shouldReturnCriterionById() {
+        Rubric rubric = new Rubric(UUID.randomUUID());
+        rubric.addCriterion(this.firstCriterion);
+
+        assertSame(
+                this.firstCriterion,
+                rubric.getCriterionById(this.firstCriterion.getId())
+        );
+    }
+
+    @Test
+    void shouldRejectMissingCriterionId() {
+        Rubric rubric = new Rubric(UUID.randomUUID());
+        rubric.addCriterion(this.firstCriterion);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rubric.getCriterionById(UUID.randomUUID())
+        );
+    }
+
+    @Test
     void shouldRejectTotalWeightGreaterThanOne() {
         Rubric rubric = new Rubric(UUID.randomUUID());
         rubric.addCriterion(this.firstCriterion);

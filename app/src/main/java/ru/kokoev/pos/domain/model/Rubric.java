@@ -40,6 +40,17 @@ public class Rubric {
         this.criteria.add(criterion);
     }
 
+    public Criterion getCriterionById(UUID criterionId) {
+        for (Criterion criterion : criteria) {
+            if (criterion.getId().equals(criterionId)) {
+                return criterion;
+            }
+        }
+        throw new IllegalArgumentException(
+                "Критерий с таким идентификатором не найден"
+        );
+    }
+
     public BigDecimal getTotalWeight() {
         BigDecimal totalWeight = BigDecimal.ZERO;
         for (Criterion tempCriterion : criteria) {
@@ -56,4 +67,3 @@ public class Rubric {
         return this.id;
     }
 }
-
