@@ -37,8 +37,18 @@ public class App {
         BigDecimal percentage = result.multiply(BigDecimal.valueOf(100)).stripTrailingZeros();
 
         System.out.println("Студент: " + student.getFullName());
-        System.out.println(exam.getName() + ": " + examEvaluation.getScore().value() + "/" + exam.getMaxScore());
-        System.out.println(project.getName() + ": " + projectEvaluation.getScore().value() + "/" + project.getMaxScore());
+        System.out.printf(
+                "%s: %d/%d%n",
+                exam.getName(),
+                examEvaluation.getScore().value(),
+                exam.getMaxScore()
+        );
+        System.out.printf(
+                "%s: %d/%d%n",
+                project.getName(),
+                projectEvaluation.getScore().value(),
+                project.getMaxScore()
+        );
         System.out.println("Итоговый результат: " + percentage.toPlainString() + "%");
     }
 }
