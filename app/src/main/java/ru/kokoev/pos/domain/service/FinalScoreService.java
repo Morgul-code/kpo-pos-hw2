@@ -3,15 +3,26 @@ package ru.kokoev.pos.domain.service;
 import ru.kokoev.pos.domain.model.Criterion;
 import ru.kokoev.pos.domain.model.Evaluation;
 import ru.kokoev.pos.domain.model.Rubric;
+import ru.kokoev.pos.domain.strategy.ScoringStrategy;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 public class FinalScoreService {
+    private final ScoringStrategy strategy;
+
+    public FinalScoreService(ScoringStrategy strategy) {
+        if (strategy == null) {
+            throw new IllegalArgumentException(
+                    "Стратегия расчёта не может быть null"
+            );
+        }
+        this.strategy = strategy;
+    }
+
     public BigDecimal calculate(
             UUID studentId,
             Rubric rubric,
@@ -29,7 +40,6 @@ public class FinalScoreService {
         }
 
         Set<UUID> evaluatedCriterionIds = new HashSet<>();
-        BigDecimal total = BigDecimal.ZERO;
         for (Evaluation evaluation : evaluations) {
             if (evaluation == null) {
                 throw new IllegalArgumentException(
@@ -54,14 +64,7 @@ public class FinalScoreService {
                         "Балл не должен превышать максимум критерия"
                 );
             }
-
-            BigDecimal ratio = BigDecimal.valueOf(evaluation.getScore().value()).divide(
-                    BigDecimal.valueOf(criterion.getMaxScore()),
-                    10,
-                    RoundingMode.HALF_UP
-            );
-            total = total.add(ratio.multiply(criterion.getWeight()));
         }
-        return total;
+        return this.strategy.calculate(rubric, evaluations);
     }
 }

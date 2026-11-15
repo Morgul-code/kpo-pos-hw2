@@ -9,6 +9,7 @@ import ru.kokoev.pos.domain.model.Score;
 import ru.kokoev.pos.domain.model.Student;
 import ru.kokoev.pos.domain.repository.EvaluationRepository;
 import ru.kokoev.pos.domain.service.FinalScoreService;
+import ru.kokoev.pos.domain.strategy.WeightedScoringStrategy;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryEvaluationRepository;
 
 import java.math.BigDecimal;
@@ -29,7 +30,7 @@ public class EvaluationApplicationServiceTest {
 
     public EvaluationApplicationServiceTest() {
         this.repository = new InMemoryEvaluationRepository();
-        this.finalScoreService = new FinalScoreService();
+        this.finalScoreService = new FinalScoreService(new WeightedScoringStrategy());
         this.evaluationFactory = new EvaluationFactory();
         this.service = new EvaluationApplicationService(
                 this.repository, this.finalScoreService, this.evaluationFactory

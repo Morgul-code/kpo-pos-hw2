@@ -8,6 +8,7 @@ import ru.kokoev.pos.domain.model.Criterion;
 import ru.kokoev.pos.domain.model.Rubric;
 import ru.kokoev.pos.domain.model.Student;
 import ru.kokoev.pos.domain.service.FinalScoreService;
+import ru.kokoev.pos.domain.strategy.WeightedScoringStrategy;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryEvaluationRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryRubricRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryStudentRepository;
@@ -25,7 +26,9 @@ public class ConsoleMenuTest {
             new InMemoryStudentRepository(),
             new InMemoryRubricRepository(),
             new EvaluationApplicationService(
-                    new InMemoryEvaluationRepository(), new FinalScoreService(), new EvaluationFactory()
+                    new InMemoryEvaluationRepository(),
+                    new FinalScoreService(new WeightedScoringStrategy()),
+                    new EvaluationFactory()
             )
     );
 

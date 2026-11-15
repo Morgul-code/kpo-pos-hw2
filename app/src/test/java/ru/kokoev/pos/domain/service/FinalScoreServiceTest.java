@@ -6,6 +6,8 @@ import ru.kokoev.pos.domain.model.Evaluation;
 import ru.kokoev.pos.domain.model.Rubric;
 import ru.kokoev.pos.domain.model.Score;
 import ru.kokoev.pos.domain.model.Student;
+import ru.kokoev.pos.domain.strategy.EqualWeightScoringStrategy;
+import ru.kokoev.pos.domain.strategy.WeightedScoringStrategy;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -22,7 +24,7 @@ public class FinalScoreServiceTest {
     private final Criterion project;
 
     public FinalScoreServiceTest() {
-        this.service = new FinalScoreService();
+        this.service = new FinalScoreService(new WeightedScoringStrategy());
         this.student = new Student(UUID.randomUUID(), "Иван Иванов");
         this.rubric = new Rubric(UUID.randomUUID());
         this.exam = new Criterion(UUID.randomUUID(), "Экзамен", 10, new BigDecimal("0.60"));
@@ -220,6 +222,75 @@ public class FinalScoreServiceTest {
                         this.student.getId(), this.rubric, Collections.singletonList(null)
                 )
         );
+    }
+
+    @Test
+    void shouldRejectNullStrategy() {
+        assertThrows(IllegalArgumentException.class, () -> new FinalScoreService(null));
+    }
+
+    @Test
+    void shouldDelegateCalculationToInjectedStrategy() {
+        List<Evaluation> evaluations = List.of(evaluation(this.exam, 8));
+        BigDecimal expected = new BigDecimal("0.25");
+        FinalScoreService service = new FinalScoreService((rubric, actualEvaluations) -> {
+            assertSame(this.rubric, rubric);
+            assertSame(evaluations, actualEvaluations);
+            return expected;
+        });
+
+        assertSame(expected, service.calculate(this.student.getId(), this.rubric, evaluations));
+    }
+
+    @Test
+    void shouldRejectInvalidDataWithEqualWeightStrategy() {
+        FinalScoreService service = new FinalScoreService(new EqualWeightScoringStrategy());
+        Rubric incompleteRubric = new Rubric(UUID.randomUUID());
+        incompleteRubric.addCriterion(this.exam);
+        Student otherStudent = new Student(UUID.randomUUID(), "Пётр Петров");
+        Evaluation otherStudentEvaluation = new Evaluation(
+                UUID.randomUUID(), otherStudent, this.rubric, this.exam.getId(), new Score(8)
+        );
+        Rubric otherRubric = new Rubric(UUID.randomUUID());
+        otherRubric.addCriterion(this.exam);
+        Evaluation otherRubricEvaluation = new Evaluation(
+                UUID.randomUUID(), this.student, otherRubric, this.exam.getId(), new Score(8)
+        );
+        Rubric differentDefinition = new Rubric(this.rubric.getId());
+        Criterion unknownCriterion = new Criterion(UUID.randomUUID(), "Задание", 10, new BigDecimal("0.40"));
+        Criterion largerMaximum = new Criterion(this.exam.getId(), "Экзамен", 20, new BigDecimal("0.60"));
+        differentDefinition.addCriterion(unknownCriterion);
+        differentDefinition.addCriterion(largerMaximum);
+        Evaluation unknownCriterionEvaluation = new Evaluation(
+                UUID.randomUUID(), this.student, differentDefinition, unknownCriterion.getId(), new Score(8)
+        );
+        Evaluation excessiveScore = new Evaluation(
+                UUID.randomUUID(), this.student, differentDefinition, largerMaximum.getId(), new Score(12)
+        );
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(null, this.rubric, List.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), null, List.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), this.rubric, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), incompleteRubric, List.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), new Rubric(UUID.randomUUID()), List.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), this.rubric, Collections.singletonList(null)));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), this.rubric, List.of(otherStudentEvaluation)));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), this.rubric, List.of(otherRubricEvaluation)));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), this.rubric, List.of(unknownCriterionEvaluation)));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.calculate(this.student.getId(), this.rubric, List.of(excessiveScore)));
+        assertThrows(IllegalArgumentException.class, () -> service.calculate(
+                this.student.getId(), this.rubric, List.of(evaluation(this.exam, 8), evaluation(this.exam, 9))
+        ));
     }
 
     private Evaluation evaluation(Criterion criterion, int score) {
