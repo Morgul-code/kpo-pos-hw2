@@ -75,11 +75,6 @@ public class PosFacade {
     public Evaluation assignScore(UUID studentId, UUID rubricId, UUID criterionId, int points) {
         Student student = this.studentRepository.getById(studentId);
         Rubric rubric = this.rubricRepository.getById(rubricId);
-        if (rubric.getTotalWeight().compareTo(BigDecimal.ONE) != 0) {
-            throw new IllegalArgumentException(
-                    "Нельзя выставлять оценки: сумма весов рубрикатора должна равняться 1"
-            );
-        }
         return this.evaluationService.assignScore(student, rubric, criterionId, points);
     }
 

@@ -2,6 +2,7 @@ package ru.kokoev.pos;
 
 import ru.kokoev.pos.application.facade.PosFacade;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
+import ru.kokoev.pos.domain.factory.EvaluationFactory;
 import ru.kokoev.pos.domain.repository.EvaluationRepository;
 import ru.kokoev.pos.domain.repository.RubricRepository;
 import ru.kokoev.pos.domain.repository.StudentRepository;
@@ -19,8 +20,9 @@ public class App {
         RubricRepository rubricRepository = new InMemoryRubricRepository();
         EvaluationRepository repository = new InMemoryEvaluationRepository();
         FinalScoreService finalScoreService = new FinalScoreService();
+        EvaluationFactory evaluationFactory = new EvaluationFactory();
         EvaluationApplicationService service = new EvaluationApplicationService(
-                repository, finalScoreService
+                repository, finalScoreService, evaluationFactory
         );
 
         PosFacade facade = new PosFacade(studentRepository, rubricRepository, service);

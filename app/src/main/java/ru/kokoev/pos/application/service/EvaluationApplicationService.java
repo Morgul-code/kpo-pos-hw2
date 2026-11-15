@@ -1,8 +1,8 @@
 package ru.kokoev.pos.application.service;
 
+import ru.kokoev.pos.domain.factory.EvaluationFactory;
 import ru.kokoev.pos.domain.model.Evaluation;
 import ru.kokoev.pos.domain.model.Rubric;
-import ru.kokoev.pos.domain.model.Score;
 import ru.kokoev.pos.domain.model.Student;
 import ru.kokoev.pos.domain.repository.EvaluationRepository;
 import ru.kokoev.pos.domain.service.FinalScoreService;
@@ -14,18 +14,21 @@ import java.util.UUID;
 public class EvaluationApplicationService {
     private final EvaluationRepository repository;
     private final FinalScoreService finalScoreService;
+    private final EvaluationFactory evaluationFactory;
 
     public EvaluationApplicationService(
             EvaluationRepository repository,
-            FinalScoreService finalScoreService
+            FinalScoreService finalScoreService,
+            EvaluationFactory evaluationFactory
     ) {
-        if (repository == null || finalScoreService == null) {
+        if (repository == null || finalScoreService == null || evaluationFactory == null) {
             throw new IllegalArgumentException(
                     "Зависимости сервиса не могут быть null"
             );
         }
         this.repository = repository;
         this.finalScoreService = finalScoreService;
+        this.evaluationFactory = evaluationFactory;
     }
 
     public Evaluation assignScore(
@@ -51,8 +54,8 @@ public class EvaluationApplicationService {
             }
         }
 
-        Evaluation newEvaluation = new Evaluation(
-                UUID.randomUUID(), student, rubric, criterionId, new Score(points)
+        Evaluation newEvaluation = this.evaluationFactory.create(
+                student, rubric, criterionId, points
         );
         this.repository.save(newEvaluation);
         return newEvaluation;

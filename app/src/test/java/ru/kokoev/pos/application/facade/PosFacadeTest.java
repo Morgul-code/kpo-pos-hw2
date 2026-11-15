@@ -2,6 +2,7 @@ package ru.kokoev.pos.application.facade;
 
 import org.junit.jupiter.api.Test;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
+import ru.kokoev.pos.domain.factory.EvaluationFactory;
 import ru.kokoev.pos.domain.model.Criterion;
 import ru.kokoev.pos.domain.model.Evaluation;
 import ru.kokoev.pos.domain.model.Rubric;
@@ -23,7 +24,7 @@ public class PosFacadeTest {
     private final StudentRepository studentRepository = new InMemoryStudentRepository();
     private final RubricRepository rubricRepository = new InMemoryRubricRepository();
     private final EvaluationApplicationService evaluationService = new EvaluationApplicationService(
-            new InMemoryEvaluationRepository(), new FinalScoreService()
+            new InMemoryEvaluationRepository(), new FinalScoreService(), new EvaluationFactory()
     );
     private final PosFacade facade = new PosFacade(
             this.studentRepository, this.rubricRepository, this.evaluationService

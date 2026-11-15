@@ -3,6 +3,7 @@ package ru.kokoev.pos.presentation.console;
 import org.junit.jupiter.api.Test;
 import ru.kokoev.pos.application.facade.PosFacade;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
+import ru.kokoev.pos.domain.factory.EvaluationFactory;
 import ru.kokoev.pos.domain.model.Criterion;
 import ru.kokoev.pos.domain.model.Rubric;
 import ru.kokoev.pos.domain.model.Student;
@@ -23,7 +24,9 @@ public class ConsoleMenuTest {
     private final PosFacade facade = new PosFacade(
             new InMemoryStudentRepository(),
             new InMemoryRubricRepository(),
-            new EvaluationApplicationService(new InMemoryEvaluationRepository(), new FinalScoreService())
+            new EvaluationApplicationService(
+                    new InMemoryEvaluationRepository(), new FinalScoreService(), new EvaluationFactory()
+            )
     );
 
     @Test

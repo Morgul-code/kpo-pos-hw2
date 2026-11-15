@@ -1,6 +1,7 @@
 package ru.kokoev.pos.application.service;
 
 import org.junit.jupiter.api.Test;
+import ru.kokoev.pos.domain.factory.EvaluationFactory;
 import ru.kokoev.pos.domain.model.Criterion;
 import ru.kokoev.pos.domain.model.Evaluation;
 import ru.kokoev.pos.domain.model.Rubric;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class EvaluationApplicationServiceTest {
     private final EvaluationRepository repository;
     private final FinalScoreService finalScoreService;
+    private final EvaluationFactory evaluationFactory;
     private final EvaluationApplicationService service;
     private final Student student;
     private final Rubric rubric;
@@ -28,7 +30,10 @@ public class EvaluationApplicationServiceTest {
     public EvaluationApplicationServiceTest() {
         this.repository = new InMemoryEvaluationRepository();
         this.finalScoreService = new FinalScoreService();
-        this.service = new EvaluationApplicationService(this.repository, this.finalScoreService);
+        this.evaluationFactory = new EvaluationFactory();
+        this.service = new EvaluationApplicationService(
+                this.repository, this.finalScoreService, this.evaluationFactory
+        );
         this.student = new Student(UUID.randomUUID(), "Иван Иванов");
         this.rubric = new Rubric(UUID.randomUUID());
         this.exam = new Criterion(UUID.randomUUID(), "Экзамен", 10, new BigDecimal("0.60"));
@@ -92,11 +97,15 @@ public class EvaluationApplicationServiceTest {
     void shouldRejectNullDependencies() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new EvaluationApplicationService(null, this.finalScoreService)
+                () -> new EvaluationApplicationService(null, this.finalScoreService, this.evaluationFactory)
         );
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new EvaluationApplicationService(this.repository, null)
+                () -> new EvaluationApplicationService(this.repository, null, this.evaluationFactory)
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new EvaluationApplicationService(this.repository, this.finalScoreService, null)
         );
     }
 
@@ -149,6 +158,25 @@ public class EvaluationApplicationServiceTest {
         );
 
         assertTrue(this.service.findEvaluations(this.student, this.rubric).isEmpty());
+    }
+
+    @Test
+    void shouldRejectIncompleteRubricWithoutSaving() {
+        Rubric incompleteRubric = new Rubric(UUID.randomUUID());
+        incompleteRubric.addCriterion(this.exam);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> this.service.assignScore(this.student, incompleteRubric, this.exam.getId(), 8)
+        );
+
+        assertEquals(
+                "Нельзя выставлять оценки: сумма весов рубрикатора должна равняться 1",
+                exception.getMessage()
+        );
+        assertTrue(this.repository.findByStudentAndRubric(
+                this.student.getId(), incompleteRubric.getId()
+        ).isEmpty());
     }
 
     @Test
