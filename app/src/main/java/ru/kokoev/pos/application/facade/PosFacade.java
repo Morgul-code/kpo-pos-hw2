@@ -84,6 +84,18 @@ public class PosFacade {
         return this.evaluationService.assignScore(student, rubric, criterionId, points);
     }
 
+    public Evaluation updateScore(UUID studentId, UUID rubricId, UUID criterionId, int points) {
+        Student student = this.studentRepository.getById(studentId);
+        Rubric rubric = this.rubricRepository.getById(rubricId);
+        return this.evaluationService.updateScore(student, rubric, criterionId, points);
+    }
+
+    public void removeScore(UUID studentId, UUID rubricId, UUID criterionId) {
+        Student student = this.studentRepository.getById(studentId);
+        Rubric rubric = this.rubricRepository.getById(rubricId);
+        this.evaluationService.removeScore(student, rubric, criterionId);
+    }
+
     public List<Evaluation> findEvaluations(UUID studentId, UUID rubricId) {
         Student student = this.studentRepository.getById(studentId);
         Rubric rubric = this.rubricRepository.getById(rubricId);

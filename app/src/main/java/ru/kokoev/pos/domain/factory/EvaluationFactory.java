@@ -15,7 +15,20 @@ public class EvaluationFactory {
             UUID criterionId,
             int points
     ) {
-        if (student == null || rubric == null || criterionId == null) {
+        return create(UUID.randomUUID(), student, rubric, criterionId, points);
+    }
+
+    /**
+     * Создаёт проверенную версию оценки, сохраняя идентификатор при исправлении.
+     */
+    public Evaluation create(
+            UUID id,
+            Student student,
+            Rubric rubric,
+            UUID criterionId,
+            int points
+    ) {
+        if (id == null || student == null || rubric == null || criterionId == null) {
             throw new IllegalArgumentException(
                     "Аргументы создания оценки не могут быть null"
             );
@@ -27,6 +40,6 @@ public class EvaluationFactory {
         }
 
         Score score = new Score(points);
-        return new Evaluation(UUID.randomUUID(), student, rubric, criterionId, score);
+        return new Evaluation(id, student, rubric, criterionId, score);
     }
 }

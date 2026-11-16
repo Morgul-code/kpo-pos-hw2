@@ -95,6 +95,96 @@ public class EvaluationApplicationServiceTest {
     }
 
     @Test
+    void shouldUpdateScoreAndFinalResultWithoutChangingEvaluationId() {
+        Evaluation original = this.service.assignScore(this.student, this.rubric, this.exam.getId(), 3);
+        assertEquals(0, new BigDecimal("0.18").compareTo(
+                this.service.calculateFinal(this.student, this.rubric)
+        ));
+
+        Evaluation updated = this.service.updateScore(this.student, this.rubric, this.exam.getId(), 8);
+
+        assertEquals(original.getId(), updated.getId());
+        assertEquals(new Score(8), updated.getScore());
+        assertEquals(List.of(updated), this.service.findEvaluations(this.student, this.rubric));
+        assertEquals(0, new BigDecimal("0.48").compareTo(
+                this.service.calculateFinal(this.student, this.rubric)
+        ));
+    }
+
+    @Test
+    void shouldKeepOriginalAfterInvalidCorrection() {
+        Evaluation original = this.service.assignScore(this.student, this.rubric, this.exam.getId(), 3);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.updateScore(this.student, this.rubric, this.exam.getId(), 12));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.updateScore(this.student, this.rubric, this.exam.getId(), -1));
+
+        assertEquals(List.of(original), this.service.findEvaluations(this.student, this.rubric));
+        assertEquals(0, new BigDecimal("0.18").compareTo(
+                this.service.calculateFinal(this.student, this.rubric)
+        ));
+    }
+
+    @Test
+    void shouldRemoveScoreFromFinalCalculationAndAllowReassignment() {
+        this.service.assignScore(this.student, this.rubric, this.exam.getId(), 8);
+        Evaluation projectEvaluation = this.service.assignScore(
+                this.student, this.rubric, this.project.getId(), 18
+        );
+
+        this.service.removeScore(this.student, this.rubric, this.exam.getId());
+
+        assertEquals(List.of(projectEvaluation), this.service.findEvaluations(this.student, this.rubric));
+        assertEquals(0, new BigDecimal("0.36").compareTo(
+                this.service.calculateFinal(this.student, this.rubric)
+        ));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> this.service.removeScore(this.student, this.rubric, this.exam.getId()));
+        assertEquals("Оценка по данному критерию не найдена", exception.getMessage());
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.updateScore(this.student, this.rubric, this.exam.getId(), 8));
+        assertEquals(List.of(projectEvaluation), this.service.findEvaluations(this.student, this.rubric));
+
+        this.service.assignScore(this.student, this.rubric, this.exam.getId(), 8);
+        assertEquals(0, new BigDecimal("0.84").compareTo(
+                this.service.calculateFinal(this.student, this.rubric)
+        ));
+    }
+
+    @Test
+    void shouldRejectChangingMissingScore() {
+        IllegalArgumentException updateException = assertThrows(IllegalArgumentException.class,
+                () -> this.service.updateScore(this.student, this.rubric, this.exam.getId(), 8));
+        IllegalArgumentException removeException = assertThrows(IllegalArgumentException.class,
+                () -> this.service.removeScore(this.student, this.rubric, this.exam.getId()));
+
+        assertEquals("Оценка по данному критерию не найдена", updateException.getMessage());
+        assertEquals(updateException.getMessage(), removeException.getMessage());
+        assertTrue(this.service.findEvaluations(this.student, this.rubric).isEmpty());
+    }
+
+    @Test
+    void shouldRejectNullCorrectionAndRemovalArguments() {
+        Evaluation original = this.service.assignScore(this.student, this.rubric, this.exam.getId(), 3);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.updateScore(null, this.rubric, this.exam.getId(), 8));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.updateScore(this.student, null, this.exam.getId(), 8));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.updateScore(this.student, this.rubric, null, 8));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.removeScore(null, this.rubric, this.exam.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.removeScore(this.student, null, this.exam.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.service.removeScore(this.student, this.rubric, null));
+
+        assertEquals(List.of(original), this.service.findEvaluations(this.student, this.rubric));
+    }
+
+    @Test
     void shouldRejectNullDependencies() {
         assertThrows(
                 IllegalArgumentException.class,

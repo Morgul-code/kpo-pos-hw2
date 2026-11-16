@@ -68,16 +68,31 @@ public class InMemoryRubricRepositoryTest {
     }
 
     @Test
-    void shouldReplaceRubricWithSameId() {
+    void shouldRejectDifferentRubricWithSameId() {
         Rubric secondRubric = new Rubric(UUID.randomUUID());
         Rubric replacement = new Rubric(this.rubric.getId());
+        Criterion originalCriterion = new Criterion(UUID.randomUUID(), "Экзамен", 10, BigDecimal.ONE);
+        this.rubric.addCriterion(originalCriterion);
         this.repository.save(this.rubric);
         this.repository.save(secondRubric);
 
-        this.repository.save(replacement);
+        assertThrows(IllegalArgumentException.class, () -> this.repository.save(replacement));
 
-        assertSame(replacement, this.repository.getById(this.rubric.getId()));
-        assertEquals(List.of(replacement, secondRubric), this.repository.findAll());
+        assertSame(this.rubric, this.repository.getById(this.rubric.getId()));
+        assertEquals(List.of(originalCriterion), this.repository.getById(this.rubric.getId()).getCriteria());
+        assertEquals(List.of(this.rubric, secondRubric), this.repository.findAll());
+    }
+
+    @Test
+    void shouldSaveSameRubricAgainAfterAddingCriterion() {
+        this.repository.save(this.rubric);
+        Criterion criterion = new Criterion(UUID.randomUUID(), "Экзамен", 10, BigDecimal.ONE);
+        this.rubric.addCriterion(criterion);
+
+        this.repository.save(this.rubric);
+
+        assertEquals(List.of(this.rubric), this.repository.findAll());
+        assertEquals(List.of(criterion), this.repository.getById(this.rubric.getId()).getCriteria());
     }
 
     @Test

@@ -50,6 +50,20 @@ public class EvaluationFactoryTest {
     }
 
     @Test
+    void shouldPreserveProvidedIdForCorrection() {
+        UUID id = UUID.randomUUID();
+
+        Evaluation evaluation = this.factory.create(
+                id, this.student, this.rubric, this.criterion.getId(), 8
+        );
+
+        assertEquals(id, evaluation.getId());
+        assertEquals(new Score(8), evaluation.getScore());
+        assertThrows(IllegalArgumentException.class,
+                () -> this.factory.create(null, this.student, this.rubric, this.criterion.getId(), 8));
+    }
+
+    @Test
     void shouldRejectNegativeScore() {
         assertThrows(
                 IllegalArgumentException.class,

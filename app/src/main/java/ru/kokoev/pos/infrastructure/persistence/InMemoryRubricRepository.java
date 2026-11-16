@@ -18,6 +18,12 @@ public class InMemoryRubricRepository implements RubricRepository {
                     "Рубрикатор не может быть null"
             );
         }
+        Rubric existing = this.rubrics.get(rubric.getId());
+        if (existing != null && existing != rubric) {
+            throw new IllegalArgumentException(
+                    "Нельзя заменить существующий рубрикатор другим объектом с тем же идентификатором"
+            );
+        }
         this.rubrics.put(rubric.getId(), rubric);
     }
 

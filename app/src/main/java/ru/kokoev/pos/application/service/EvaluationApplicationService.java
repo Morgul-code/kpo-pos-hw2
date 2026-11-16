@@ -61,6 +61,32 @@ public class EvaluationApplicationService {
         return newEvaluation;
     }
 
+    public Evaluation updateScore(Student student, Rubric rubric, UUID criterionId, int points) {
+        Evaluation existing = getExistingEvaluation(student, rubric, criterionId);
+        Evaluation updated = this.evaluationFactory.create(
+                existing.getId(), student, rubric, criterionId, points
+        );
+        this.repository.update(updated);
+        return updated;
+    }
+
+    public void removeScore(Student student, Rubric rubric, UUID criterionId) {
+        getExistingEvaluation(student, rubric, criterionId);
+        this.repository.remove(student.getId(), rubric.getId(), criterionId);
+    }
+
+    private Evaluation getExistingEvaluation(Student student, Rubric rubric, UUID criterionId) {
+        if (criterionId == null) {
+            throw new IllegalArgumentException("Идентификатор критерия не может быть null");
+        }
+        for (Evaluation evaluation : findEvaluations(student, rubric)) {
+            if (evaluation.getCriterionId().equals(criterionId)) {
+                return evaluation;
+            }
+        }
+        throw new IllegalArgumentException("Оценка по данному критерию не найдена");
+    }
+
     public List<Evaluation> findEvaluations(
             Student student,
             Rubric rubric

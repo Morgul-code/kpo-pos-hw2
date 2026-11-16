@@ -242,6 +242,56 @@ public class PosFacadeTest {
     }
 
     @Test
+    void shouldUpdateAndRemoveScoreBeforeCsvExport(@TempDir Path tempDir) throws IOException {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        Criterion exam = this.facade.addCriterion(rubric.getId(), "Экзамен", 10, new BigDecimal("0.60"));
+        Criterion project = this.facade.addCriterion(rubric.getId(), "Проект", 20, new BigDecimal("0.40"));
+        Evaluation original = this.facade.assignScore(student.getId(), rubric.getId(), exam.getId(), 3);
+        this.facade.assignScore(student.getId(), rubric.getId(), project.getId(), 18);
+
+        Evaluation updated = this.facade.updateScore(student.getId(), rubric.getId(), exam.getId(), 8);
+
+        assertEquals(original.getId(), updated.getId());
+        assertEquals(0, new BigDecimal("0.84").compareTo(
+                this.facade.calculateFinal(student.getId(), rubric.getId())
+        ));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.facade.updateScore(student.getId(), rubric.getId(), exam.getId(), 12));
+        assertEquals(0, new BigDecimal("0.84").compareTo(
+                this.facade.calculateFinal(student.getId(), rubric.getId())
+        ));
+
+        this.facade.removeScore(student.getId(), rubric.getId(), exam.getId());
+        Path destination = tempDir.resolve("results.csv");
+        this.facade.exportResult(student.getId(), rubric.getId(), destination);
+
+        assertEquals(
+                "student_id,student_name,rubric_id,criterion_name,score,max_score,weight,final_percent\n"
+                        + student.getId() + ",\"Иван Иванов\"," + rubric.getId() + ",\"Экзамен\",,10,0.60,36\n"
+                        + student.getId() + ",\"Иван Иванов\"," + rubric.getId() + ",\"Проект\",18,20,0.40,36\n",
+                Files.readString(destination)
+        );
+    }
+
+    @Test
+    void shouldKeepGradedRubricWhenReplacementIsRejected() {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        Criterion exam = this.facade.addCriterion(rubric.getId(), "Экзамен", 10, BigDecimal.ONE);
+        this.facade.assignScore(student.getId(), rubric.getId(), exam.getId(), 8);
+        Rubric replacement = new Rubric(rubric.getId());
+        replacement.addCriterion(new Criterion(UUID.randomUUID(), "Другой критерий", 20, BigDecimal.ONE));
+
+        assertThrows(IllegalArgumentException.class, () -> this.rubricRepository.save(replacement));
+
+        assertEquals(List.of(exam), this.facade.findCriteria(rubric.getId()));
+        assertEquals(0, new BigDecimal("0.8").compareTo(
+                this.facade.calculateFinal(student.getId(), rubric.getId())
+        ));
+    }
+
+    @Test
     void shouldNotCreateFileForInvalidRubric(@TempDir Path tempDir) {
         Student student = this.facade.createStudent("Иван Иванов");
         Rubric rubric = this.facade.createRubric();

@@ -47,6 +47,8 @@ public class ConsoleMenu {
                     case "8" -> calculateFinal();
                     case "9" -> showEvaluations();
                     case "10" -> exportResult();
+                    case "11" -> updateScore();
+                    case "12" -> removeScore();
                     case "0" -> {
                         this.output.println("До свидания!");
                         return;
@@ -78,6 +80,8 @@ public class ConsoleMenu {
                 8. Рассчитать итог
                 9. Показать оценки студента
                 10. Экспортировать результат в CSV
+                11. Исправить оценку
+                12. Отменить оценку
                 0. Выход
                 """);
     }
@@ -99,15 +103,36 @@ public class ConsoleMenu {
     private void assignScore() {
         Student student = selectStudent();
         Rubric rubric = selectRubric();
+        Criterion criterion = selectCriterion(rubric);
+        int points = readInt("Балл: ");
+        this.facade.assignScore(student.getId(), rubric.getId(), criterion.getId(), points);
+        this.output.println("Оценка сохранена.");
+    }
+
+    private void updateScore() {
+        Student student = selectStudent();
+        Rubric rubric = selectRubric();
+        Criterion criterion = selectCriterion(rubric);
+        int points = readInt("Новый балл: ");
+        this.facade.updateScore(student.getId(), rubric.getId(), criterion.getId(), points);
+        this.output.println("Оценка изменена.");
+    }
+
+    private void removeScore() {
+        Student student = selectStudent();
+        Rubric rubric = selectRubric();
+        Criterion criterion = selectCriterion(rubric);
+        this.facade.removeScore(student.getId(), rubric.getId(), criterion.getId());
+        this.output.println("Оценка отменена.");
+    }
+
+    private Criterion selectCriterion(Rubric rubric) {
         List<Criterion> criteria = this.facade.findCriteria(rubric.getId());
         if (criteria.isEmpty()) {
             throw new IllegalArgumentException("Сначала добавьте критерий.");
         }
         printCriteria(criteria);
-        Criterion criterion = criteria.get(readIndex("Номер критерия: ", criteria.size()));
-        int points = readInt("Балл: ");
-        this.facade.assignScore(student.getId(), rubric.getId(), criterion.getId(), points);
-        this.output.println("Оценка сохранена.");
+        return criteria.get(readIndex("Номер критерия: ", criteria.size()));
     }
 
     private void showEvaluations() {
