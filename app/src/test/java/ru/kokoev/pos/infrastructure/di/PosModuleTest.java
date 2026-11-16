@@ -3,7 +3,9 @@ package ru.kokoev.pos.infrastructure.di;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import ru.kokoev.pos.application.facade.PosFacade;
+import ru.kokoev.pos.application.port.ResultExporter;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
 import ru.kokoev.pos.domain.model.Criterion;
 import ru.kokoev.pos.domain.model.Evaluation;
@@ -14,7 +16,11 @@ import ru.kokoev.pos.domain.repository.RubricRepository;
 import ru.kokoev.pos.domain.repository.StudentRepository;
 import ru.kokoev.pos.presentation.console.ConsoleMenu;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -92,6 +98,28 @@ public class PosModuleTest {
                 facade.calculateFinal(student.getId(), rubric.getId())
         ));
         assertEquals(0, new BigDecimal("0.84").compareTo(service.calculateFinal(student, rubric)));
+    }
+
+    @Test
+    void shouldExportResultWithConfiguredAdapter(@TempDir Path tempDir) throws IOException {
+        PosFacade facade = this.injector.getInstance(PosFacade.class);
+        Student student = facade.createStudent("Иван Иванов");
+        Rubric rubric = facade.createRubric();
+        Criterion exam = facade.addCriterion(rubric.getId(), "Экзамен", 10, BigDecimal.ONE);
+        facade.assignScore(student.getId(), rubric.getId(), exam.getId(), 8);
+        Path destination = tempDir.resolve("results.csv");
+
+        facade.exportResult(student.getId(), rubric.getId(), destination);
+
+        assertEquals(
+                "student_id,student_name,rubric_id,criterion_name,score,max_score,weight,final_percent\n"
+                        + student.getId() + ",\"Иван Иванов\"," + rubric.getId() + ",\"Экзамен\",8,10,1,80\n",
+                Files.readString(destination, StandardCharsets.UTF_8)
+        );
+        assertSame(
+                this.injector.getInstance(ResultExporter.class),
+                this.injector.getInstance(ResultExporter.class)
+        );
     }
 
     @Test

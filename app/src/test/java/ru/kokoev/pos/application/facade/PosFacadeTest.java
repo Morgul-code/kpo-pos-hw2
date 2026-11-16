@@ -1,6 +1,8 @@
 package ru.kokoev.pos.application.facade;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import ru.kokoev.pos.application.port.ResultExporter;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
 import ru.kokoev.pos.domain.factory.EvaluationFactory;
 import ru.kokoev.pos.domain.model.Criterion;
@@ -11,11 +13,15 @@ import ru.kokoev.pos.domain.repository.RubricRepository;
 import ru.kokoev.pos.domain.repository.StudentRepository;
 import ru.kokoev.pos.domain.service.FinalScoreService;
 import ru.kokoev.pos.domain.strategy.WeightedScoringStrategy;
+import ru.kokoev.pos.infrastructure.export.CsvResultExporter;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryEvaluationRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryRubricRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryStudentRepository;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,8 +35,9 @@ public class PosFacadeTest {
             new FinalScoreService(new WeightedScoringStrategy()),
             new EvaluationFactory()
     );
+    private final ResultExporter resultExporter = new CsvResultExporter();
     private final PosFacade facade = new PosFacade(
-            this.studentRepository, this.rubricRepository, this.evaluationService
+            this.studentRepository, this.rubricRepository, this.evaluationService, this.resultExporter
     );
 
     @Test
@@ -235,12 +242,56 @@ public class PosFacadeTest {
     }
 
     @Test
+    void shouldNotCreateFileForInvalidRubric(@TempDir Path tempDir) {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        this.facade.addCriterion(rubric.getId(), "Экзамен", 10, new BigDecimal("0.60"));
+        Path destination = tempDir.resolve("results.csv");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> this.facade.exportResult(student.getId(), rubric.getId(), destination)
+        );
+
+        assertEquals("Сумма весов рубрикатора должна равняться единице", exception.getMessage());
+        assertFalse(Files.exists(destination));
+    }
+
+    @Test
+    void shouldNotOverwriteFileForInvalidRubric(@TempDir Path tempDir) throws IOException {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        Path destination = tempDir.resolve("results.csv");
+        Files.writeString(destination, "Существующий результат");
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> this.facade.exportResult(student.getId(), rubric.getId(), destination)
+        );
+
+        assertEquals("Существующий результат", Files.readString(destination));
+    }
+
+    @Test
+    void shouldRejectNullExportDestination() {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> this.facade.exportResult(student.getId(), rubric.getId(), null)
+        );
+    }
+
+    @Test
     void shouldRejectNullDependencies() {
         assertThrows(IllegalArgumentException.class,
-                () -> new PosFacade(null, this.rubricRepository, this.evaluationService));
+                () -> new PosFacade(null, this.rubricRepository, this.evaluationService, this.resultExporter));
         assertThrows(IllegalArgumentException.class,
-                () -> new PosFacade(this.studentRepository, null, this.evaluationService));
+                () -> new PosFacade(this.studentRepository, null, this.evaluationService, this.resultExporter));
         assertThrows(IllegalArgumentException.class,
-                () -> new PosFacade(this.studentRepository, this.rubricRepository, null));
+                () -> new PosFacade(this.studentRepository, this.rubricRepository, null, this.resultExporter));
+        assertThrows(IllegalArgumentException.class,
+                () -> new PosFacade(this.studentRepository, this.rubricRepository, this.evaluationService, null));
     }
 }

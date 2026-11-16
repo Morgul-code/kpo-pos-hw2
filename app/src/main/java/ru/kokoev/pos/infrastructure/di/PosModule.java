@@ -4,6 +4,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import ru.kokoev.pos.application.facade.PosFacade;
+import ru.kokoev.pos.application.port.ResultExporter;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
 import ru.kokoev.pos.domain.factory.EvaluationFactory;
 import ru.kokoev.pos.domain.repository.EvaluationRepository;
@@ -12,6 +13,7 @@ import ru.kokoev.pos.domain.repository.StudentRepository;
 import ru.kokoev.pos.domain.service.FinalScoreService;
 import ru.kokoev.pos.domain.strategy.ScoringStrategy;
 import ru.kokoev.pos.domain.strategy.WeightedScoringStrategy;
+import ru.kokoev.pos.infrastructure.export.CsvResultExporter;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryEvaluationRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryRubricRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryStudentRepository;
@@ -35,6 +37,9 @@ public class PosModule extends AbstractModule {
                 .to(WeightedScoringStrategy.class)
                 .in(Singleton.class);
         bind(EvaluationFactory.class).in(Singleton.class);
+        bind(ResultExporter.class)
+                .to(CsvResultExporter.class)
+                .in(Singleton.class);
     }
 
     @Provides
@@ -58,9 +63,10 @@ public class PosModule extends AbstractModule {
     PosFacade providePosFacade(
             StudentRepository studentRepository,
             RubricRepository rubricRepository,
-            EvaluationApplicationService evaluationService
+            EvaluationApplicationService evaluationService,
+            ResultExporter resultExporter
     ) {
-        return new PosFacade(studentRepository, rubricRepository, evaluationService);
+        return new PosFacade(studentRepository, rubricRepository, evaluationService, resultExporter);
     }
 
     @Provides

@@ -7,7 +7,9 @@ import ru.kokoev.pos.domain.model.Rubric;
 import ru.kokoev.pos.domain.model.Student;
 
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -44,6 +46,7 @@ public class ConsoleMenu {
                     case "7" -> assignScore();
                     case "8" -> calculateFinal();
                     case "9" -> showEvaluations();
+                    case "10" -> exportResult();
                     case "0" -> {
                         this.output.println("До свидания!");
                         return;
@@ -51,6 +54,8 @@ public class ConsoleMenu {
                     default -> this.output.println("Неизвестная команда.");
                 }
             } catch (IllegalArgumentException exception) {
+                this.output.println("Ошибка: " + exception.getMessage());
+            } catch (UncheckedIOException exception) {
                 this.output.println("Ошибка: " + exception.getMessage());
             } catch (NoSuchElementException exception) {
                 this.output.println("Ввод завершён.");
@@ -72,6 +77,7 @@ public class ConsoleMenu {
                 7. Выставить оценку
                 8. Рассчитать итог
                 9. Показать оценки студента
+                10. Экспортировать результат в CSV
                 0. Выход
                 """);
     }
@@ -132,6 +138,18 @@ public class ConsoleMenu {
         BigDecimal percentage = result.multiply(BigDecimal.valueOf(100)).stripTrailingZeros();
         this.output.println("Студент: " + student.getFullName());
         this.output.println("Итоговый результат: " + percentage.toPlainString() + "%");
+    }
+
+    private void exportResult() {
+        Student student = selectStudent();
+        Rubric rubric = selectRubric();
+        String filename = readLine("Имя файла: ");
+        if (filename.isBlank()) {
+            throw new IllegalArgumentException("Имя файла не может быть пустым.");
+        }
+        Path destination = Path.of(filename);
+        this.facade.exportResult(student.getId(), rubric.getId(), destination);
+        this.output.println("Результат экспортирован в " + destination);
     }
 
     private Student selectStudent() {

@@ -1,6 +1,7 @@
 package ru.kokoev.pos.presentation.console;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import ru.kokoev.pos.application.facade.PosFacade;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
 import ru.kokoev.pos.domain.factory.EvaluationFactory;
@@ -9,14 +10,18 @@ import ru.kokoev.pos.domain.model.Rubric;
 import ru.kokoev.pos.domain.model.Student;
 import ru.kokoev.pos.domain.service.FinalScoreService;
 import ru.kokoev.pos.domain.strategy.WeightedScoringStrategy;
+import ru.kokoev.pos.infrastructure.export.CsvResultExporter;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryEvaluationRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryRubricRepository;
 import ru.kokoev.pos.infrastructure.persistence.InMemoryStudentRepository;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,7 +34,8 @@ public class ConsoleMenuTest {
                     new InMemoryEvaluationRepository(),
                     new FinalScoreService(new WeightedScoringStrategy()),
                     new EvaluationFactory()
-            )
+            ),
+            new CsvResultExporter()
     );
 
     @Test
@@ -243,6 +249,78 @@ public class ConsoleMenuTest {
         assertEquals(1, this.facade.findEvaluations(student.getId(), rubric.getId()).size());
         assertEquals(8, this.facade.findEvaluations(student.getId(), rubric.getId())
                 .get(0).getScore().value());
+    }
+
+    @Test
+    void shouldExportThroughConsoleMenu(@TempDir Path tempDir) throws IOException {
+        Path destination = tempDir.resolve("results.csv");
+        String output = runMenu("""
+                1
+                Иван Иванов
+                3
+                5
+                1
+                Экзамен
+                10
+                0,60
+                5
+                1
+                Проект
+                20
+                0.40
+                7
+                1
+                1
+                1
+                8
+                7
+                1
+                1
+                2
+                18
+                8
+                1
+                1
+                10
+                1
+                1
+                %s
+                0
+                """.formatted(destination));
+
+        assertTrue(output.contains("Итоговый результат: 84%"));
+        assertTrue(output.contains("Результат экспортирован в " + destination));
+        assertTrue(output.contains("До свидания!"));
+        assertFalse(output.contains("Ошибка:"));
+        Student student = this.facade.findStudents().get(0);
+        Rubric rubric = this.facade.findRubrics().get(0);
+        assertEquals(
+                "student_id,student_name,rubric_id,criterion_name,score,max_score,weight,final_percent\n"
+                        + student.getId() + ",\"Иван Иванов\"," + rubric.getId() + ",\"Экзамен\",8,10,0.60,84\n"
+                        + student.getId() + ",\"Иван Иванов\"," + rubric.getId() + ",\"Проект\",18,20,0.40,84\n",
+                Files.readString(destination, StandardCharsets.UTF_8)
+        );
+    }
+
+    @Test
+    void shouldContinueAfterExportWriteFailure(@TempDir Path tempDir) throws IOException {
+        Student student = this.facade.createStudent("Иван Иванов");
+        Rubric rubric = this.facade.createRubric();
+        Criterion exam = this.facade.addCriterion(rubric.getId(), "Экзамен", 10, BigDecimal.ONE);
+        this.facade.assignScore(student.getId(), rubric.getId(), exam.getId(), 8);
+        Path invalidDestination = tempDir.resolve("missing/results.csv");
+        Path destination = tempDir.resolve("results.csv");
+
+        String output = runMenu(
+                "10\n1\n1\n" + invalidDestination + "\n10\n1\n1\n" + destination + "\n0\n"
+        );
+
+        assertTrue(output.contains("Ошибка: Не удалось сохранить CSV-файл"));
+        assertFalse(output.contains("Результат экспортирован в " + invalidDestination));
+        assertTrue(output.contains("Результат экспортирован в " + destination));
+        assertTrue(output.contains("До свидания!"));
+        assertFalse(Files.exists(invalidDestination));
+        assertTrue(Files.readString(destination, StandardCharsets.UTF_8).contains(",8,10,1,80\n"));
     }
 
     @Test

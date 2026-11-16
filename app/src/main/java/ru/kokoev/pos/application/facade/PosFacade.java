@@ -1,5 +1,6 @@
 package ru.kokoev.pos.application.facade;
 
+import ru.kokoev.pos.application.port.ResultExporter;
 import ru.kokoev.pos.application.service.EvaluationApplicationService;
 import ru.kokoev.pos.domain.model.Criterion;
 import ru.kokoev.pos.domain.model.Evaluation;
@@ -9,6 +10,7 @@ import ru.kokoev.pos.domain.repository.RubricRepository;
 import ru.kokoev.pos.domain.repository.StudentRepository;
 
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,18 +21,22 @@ public class PosFacade {
     private final StudentRepository studentRepository;
     private final RubricRepository rubricRepository;
     private final EvaluationApplicationService evaluationService;
+    private final ResultExporter resultExporter;
 
     public PosFacade(
             StudentRepository studentRepository,
             RubricRepository rubricRepository,
-            EvaluationApplicationService evaluationService
+            EvaluationApplicationService evaluationService,
+            ResultExporter resultExporter
     ) {
-        if (studentRepository == null || rubricRepository == null || evaluationService == null) {
+        if (studentRepository == null || rubricRepository == null
+                || evaluationService == null || resultExporter == null) {
             throw new IllegalArgumentException("Зависимости фасада не могут быть null");
         }
         this.studentRepository = studentRepository;
         this.rubricRepository = rubricRepository;
         this.evaluationService = evaluationService;
+        this.resultExporter = resultExporter;
     }
 
     public Student createStudent(String fullName) {
@@ -88,5 +94,16 @@ public class PosFacade {
         Student student = this.studentRepository.getById(studentId);
         Rubric rubric = this.rubricRepository.getById(rubricId);
         return this.evaluationService.calculateFinal(student, rubric);
+    }
+
+    public void exportResult(UUID studentId, UUID rubricId, Path destination) {
+        if (destination == null) {
+            throw new IllegalArgumentException("Путь экспорта не может быть null");
+        }
+        Student student = this.studentRepository.getById(studentId);
+        Rubric rubric = this.rubricRepository.getById(rubricId);
+        List<Evaluation> evaluations = this.evaluationService.findEvaluations(student, rubric);
+        BigDecimal finalResult = this.evaluationService.calculateFinal(student, rubric);
+        this.resultExporter.export(student, rubric, evaluations, finalResult, destination);
     }
 }
